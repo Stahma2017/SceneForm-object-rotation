@@ -1,4 +1,4 @@
-package com.example.controller
+package com.example.baseapp2.controller
 
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
@@ -13,21 +13,20 @@ class DragRotationController(transformableNode: BaseTransformableNode, gestureRe
     // Rate that the node rotates in degrees per degree of twisting.
     var rotationRateDegrees = 0.5f
 
-    override fun onEndTransformation(gesture: DragGesture?) {
-
+    public override fun canStartTransformation(gesture: DragGesture): Boolean {
+        return transformableNode.isSelected
     }
 
-    override fun onContinueTransformation(gesture: DragGesture?) {
+    public override fun onContinueTransformation(gesture: DragGesture) {
+
         var localRotation = transformableNode.localRotation
 
-        val rotationAmountX = gesture?.delta!!.x * rotationRateDegrees
+        val rotationAmountX = gesture.delta.x * rotationRateDegrees
         val rotationDeltaX = Quaternion(Vector3.up(), rotationAmountX)
         localRotation = Quaternion.multiply(localRotation, rotationDeltaX)
 
         transformableNode.localRotation = localRotation
     }
 
-    override fun canStartTransformation(gesture: DragGesture?): Boolean {
-        return transformableNode.isSelected
-    }
+    public override fun onEndTransformation(gesture: DragGesture) {}
 }

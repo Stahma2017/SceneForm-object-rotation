@@ -1,6 +1,6 @@
 package com.example.baseapp2
 
-import com.example.controller.DragRotationController
+import com.example.baseapp2.controller.DragRotationController
 import com.google.ar.sceneform.ux.TransformableNode
 import com.google.ar.sceneform.ux.TransformationSystem
 
