@@ -21,9 +21,17 @@ class DragRotationController(transformableNode: BaseTransformableNode, gestureRe
 
         var localRotation = transformableNode.localRotation
 
-        val rotationAmountX = gesture.delta.x * rotationRateDegrees
-        val rotationDeltaX = Quaternion(Vector3.up(), rotationAmountX)
+       val rotationAmountX = gesture.delta.x * rotationRateDegrees
+        val rotationDeltaX = Quaternion(Vector3.down(), rotationAmountX)
+
+
+     //   val rotationAmountY = gesture.delta.y * rotationRateDegrees
+       // val rotationDeltaY = Quaternion(Vector3.left(), rotationAmountY)
+
+    //    val resultQuaternion = Quaternion(Vector3(rotationAmountX, rotationAmountY, localRotation.z))
+
         localRotation = Quaternion.multiply(localRotation, rotationDeltaX)
+      //  localRotation = resultQuaternion
 
         transformableNode.localRotation = localRotation
     }

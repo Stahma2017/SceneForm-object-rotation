@@ -1,9 +1,11 @@
 package com.example.baseapp2
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -14,16 +16,16 @@ import com.google.ar.sceneform.collision.Box
 import com.google.ar.sceneform.math.Vector3
 import com.google.ar.sceneform.rendering.ModelRenderable
 import com.google.ar.sceneform.ux.FootprintSelectionVisualizer
+import com.google.ar.sceneform.ux.TransformableNode
 import com.google.ar.sceneform.ux.TransformationSystem
 import kotlinx.android.synthetic.main.activity_main.*
-import java.util.*
 import kotlin.math.max
 
 
 class MainActivity : AppCompatActivity() {
 
     lateinit var scene: Scene
-    lateinit var transformableNode: DragTransformableNode
+    lateinit var transformableNode: TransformableNode
     lateinit var currentTransformationSystem: TransformationSystem
 
     private val REQUEST_WRITE_EXTERNAL_STORAGE = 1001
@@ -40,11 +42,6 @@ class MainActivity : AppCompatActivity() {
 
         placeModel.setOnClickListener {
             checkPermission()
-        }
-
-        showModel.setOnClickListener {
-            currentTransformationSystem =
-                renderObject("file:///data/data/com.example.baseapp2/files/kito_sb_2309.gltf")
         }
     }
 
@@ -79,17 +76,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkPermission() {
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            //    if (shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-            requestPermissions(
-                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                REQUEST_WRITE_EXTERNAL_STORAGE
-            )
-            //     }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), REQUEST_WRITE_EXTERNAL_STORAGE)
         } else {
             placeModel()
         }
@@ -98,40 +86,62 @@ class MainActivity : AppCompatActivity() {
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
+        grantResults: IntArray) {
         if (requestCode == REQUEST_WRITE_EXTERNAL_STORAGE && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
         ) {
             placeModel()
+        } else {
+            if (shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                val builder = AlertDialog.Builder(this)
+                builder.setMessage("You must turn storage permission on to use this feature")
+                    .setTitle("Attention!")
+                val dialog = builder.create()
+                dialog.show()
+            } else {
+                val builder = AlertDialog.Builder(this)
+                builder.setMessage("Go to the settings and switch storage permission on to use this feature")
+                    .setTitle("Error!")
+                val dialog = builder
+                    .setNegativeButton("Cancel") { dialog, which ->  dialog.dismiss() }
+                    .setPositiveButton("Ok") { dialog, which -> passUserToAppSettings() }
+                    .create()
+                dialog.show()
+            }
         }
     }
 
+    private fun passUserToAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        val uri = Uri.fromParts("package", packageName, null)
+        intent.data = uri
+        startActivity(intent)
+    }
+
+
     private fun placeModel() {
-        Utils.copyAssetFolder(this.assets, "kito", "/data/data/com.example.baseapp2/files")
+        if (Utils.copyAssetFolder(this.assets, "subs", "/data/data/com.example.baseapp2/files")) {
+            currentTransformationSystem =
+                renderObject("file:///data/data/com.example.baseapp2/files/subs.gltf")
+        }
     }
 
     private fun addNodeToScene(model: ModelRenderable?) {
-        model?.let {
-            transformableNode = DragTransformableNode(currentTransformationSystem).apply {
-                rotationController.isEnabled = true
-                scaleController.isEnabled = true
-                translationController.isEnabled = false
-                setParent(scene)
-                localPosition = Vector3(0f, -0.8f, -1.4f)
-                name = "Model"
-                renderable = it
-            }
-
-            transformableNode.localScale = Vector3(getLocalScaleToFitSceen((transformableNode.collisionShape as Box).size), getLocalScaleToFitSceen((transformableNode.collisionShape as Box).size), getLocalScaleToFitSceen((transformableNode.collisionShape as Box).size))
-            scene.addChild(transformableNode)
+        transformableNode = DragTransformableNode(currentTransformationSystem).apply {
+            renderable = model
+            localPosition = Vector3(0f, -0.4f, -1f)
+            scaleController.isEnabled = false
+            setParent(scene)
         }
 
-        val height = (transformableNode.renderable!!.collisionShape as Box).size.y
-    }
+        val scaleFactor = getLocalScaleToFitSceen((transformableNode.collisionShape as Box).size)
+        transformableNode.worldScale = Vector3(scaleFactor, scaleFactor, scaleFactor)
+        scene.addChild(transformableNode)
+
+     }
 
     private fun getLocalScaleToFitSceen(size: Vector3): Float {
         val maxExtent = max(size.x, max(size.y, size.z))
-        val targetSize = 0.3f
+        val targetSize = 1f
         return targetSize / maxExtent
     }
 
